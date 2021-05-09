@@ -7,6 +7,7 @@ Covid-19 vaccine appointments in India have become scarce and difficult to make.
 * [puppeteer](https://www.npmjs.com/package/puppeteer)
 * [nodemailer](https://www.npmjs.com/package/nodemailer)
 * [googleapis](https://www.npmjs.com/package/googleapis)
+* [nedb][https://www.npmjs.com/package/nedb]
 
 Please note that puppeteer needs a GUI environment to run. If you want to run it on the server you might need to install GTK/Gnome first.
 
