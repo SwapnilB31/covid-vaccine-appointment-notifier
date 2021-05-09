@@ -1,7 +1,16 @@
 const puppeteer = require('puppeteer')
 const sendEmail = require('./sendEmail')
 const {findInDB, insertIntoDB, updateDB, deleteDocsInDB} = require('./nedbMethods')
-const util = require('util')
+const config = require('./config')
+config.timeOut = config.timeOut < 7.5 ? 7.5: config.timeOut
+
+const browserPromise = puppeteer.launch({
+    headless : config.chromeHeadless,
+    args : [
+        "--no-sandbox"
+    ]
+})
+
 
 function timeOut(time) {
     return new Promise((resolve,reject)=>{
@@ -11,16 +20,21 @@ function timeOut(time) {
     })
 }
 
-async function getSlotsInDate(districtID) {
+
+
+async function getSlotsFor6DaysPuppeteer(districtID) {
     try {
-        const browser = await puppeteer.launch({headless : false})
+        const browser = await browserPromise
         const page = await browser.newPage()
         let centerLists = []
         for(let ind = 0; ind < 6; ind++) {
             const page = await browser.newPage()
+            page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36")
             await page.goto(`https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=${districtID}&date=${DateFromToday(ind)}`)
             await page.waitForSelector('pre')
+            //await page.screenshot({path : `./tab-${ind}.png`})
             let centerList = await page.evaluate(() => {
+                
                 const pre = document.querySelector('pre')
                 const centersList = JSON.parse(pre.innerText)
                 return centersList
@@ -42,19 +56,11 @@ async function getSlotsInDate(districtID) {
                     searchDate : DateFromToday(ind) 
                 }
             }).filter(val => val.slotsAvailable > 0)
-            //console.log(centerList)
             centerLists.push(...centerList)
         }
         try {
             let pages = await browser.pages()
             await Promise.all(pages.map(page => page.close()))
-        } catch(err) {
-            console.log(err)
-        }
-
-        //await timeOut(3 * 60 * 1000)
-        try {
-            await browser.close()
         } catch(err) {
             console.log(err)
         }
@@ -66,6 +72,7 @@ async function getSlotsInDate(districtID) {
     }
     
 }
+
 
 function DateFromToday(offset) {
     const date = new Date(new Date().getTime() + 5.5 * 60 * 60 * 1000).toUTCString().replace(/GMT$/,'')
@@ -86,8 +93,7 @@ function makeDateDBFreindly(dateStr) {
 
 async function run() {
     const centersArray = []
-    const centerList = await getSlotsInDate(50)
-    //console.log(centerList)
+    const centerList = await getSlotsFor6DaysPuppeteer(config.districtID)
 
     const changedOrModifiedCenters = []
 
@@ -105,8 +111,8 @@ async function run() {
                 if(currCenter.slotsAvailable === 0)
                     await deleteDocsInDB({centerName : currCenter.centerName, date : makeDateDBFreindly(currCenter.searchDate)})
                 else {
-                    await updateDB({...currCenter, date : makeDateDBFreindly(currCenter.searchDate)}, {slotsAvailable : currCenter.slotsAvailable})
-                    changedOrModifiedCenters.push(currCenter)
+                    await updateDB({centerName : currCenter.centerName, date : makeDateDBFreindly(currCenter.searchDate)}, {slotsAvailable : currCenter.slotsAvailable})
+                    //changedOrModifiedCenters.push(currCenter)
                 }
             }
         }
@@ -142,15 +148,34 @@ async function run() {
     }
     html += `</table>`
 
-    const subject = `New slots available for Vaccination Appointment`
+    const subject = `New slots available for Vaccination Appointment ${new Date().toString()}`
 
     if(changedOrModifiedCenters.length > 0)
-        await sendEmail('swapnilbhattacharjee187@gmail.com',subject,html)
+        await sendEmail(config.recipientEmail,subject,html)
     else
-        console.log('email not sent')
+        console.log('email not sent ' + new Date().toString())
 }
+
 
 run()
 setInterval(() => {
     run()
-},10 * 60 * 1000)
+},config.timeOut * 1000)
+
+async function exitHandler() {
+    const browser = await browserPromise
+    await browser.close()
+}
+
+//Exit
+process.on('exit',exitHandler.bind(null,{cleanup:true}))
+
+//Ctrl+C
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+
+//"kill pid"
+process.on('SIGUSR1', exitHandler.bind(null, {exit:true}));
+process.on('SIGUSR2', exitHandler.bind(null, {exit:true}));
+
+//uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
