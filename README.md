@@ -44,6 +44,11 @@ You need to populate two config files:
 
     to run the application.
 
+    ## Screenshot(s)
+
+    * Sample Notification Email
+    ![sample notification email](https://github.com/SwapnilB31/covid-vaccine-appointment-notifier/raw/main/Screenshots/Sample-Email.png)
+
     ## Issues
 
     If the app is broken and throwing up errors, it could be because the API endpoint or the result schema has undergone changes that make the application incompatible with it. If the app starts throwing out errors, create an issue and paste the entire error stack trace in the issue. Valid issues will be taken up and resolved periodically.
