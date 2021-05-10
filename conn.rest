@@ -1,1 +1,9 @@
-GET https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=49&date=08-05-2021
+POST https://cdn-api.co-vin.in/api//v2/auth/public/confirmOTP
+Content-Type: application/json
+
+{
+    "otp" : "c9d5406cf907ccc8476dd0151a141b8f461f0fb7799605ab1eb6f7c8b8e392e3",
+    "txnId": "2ca28fb9-ea85-47b5-b8d8-771af6b611c6"
+}
+
+
